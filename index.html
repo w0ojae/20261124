@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#e6e9d9">
+  <meta name="description" content="직접 만든 건물에서 시작된 작은 풍경. 시간과 날씨를 바꾸며 나만의 3D 디오라마를 천천히 둘러보세요.">
+  <title>Lazy Day — 작은 정원</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%233c5544'/%3E%3Cpath d='M18 44V25l14-10 14 10v19z' fill='%23f5f3e7'/%3E%3Cpath d='M29 44V31h7v13' fill='%2394ac7a'/%3E%3C/svg%3E">
+  <link rel="preload" href="./assets/fonts/SUIT-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./style.css?v=72">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/"}}</script>
+  <script type="module" src="./main-garden.js?v=74"></script>
+</head>
+<body class="intro-active">
+  <section id="start-screen" class="start-screen" aria-labelledby="start-title" tabindex="-1">
+    <h1 id="start-title" class="start-logo">Lazy Day</h1>
+    <div class="start-bottom"><p id="start-status" class="start-status" role="status">풍경을 준비하고 있어요 · 0%</p><button id="start-enter" class="start-enter" type="button" disabled>아래로 스크롤해 둘러보기</button></div>
+  </section>
+  <div class="intro-veil" aria-hidden="true"></div>
+  <div id="error" class="error-panel" role="alert" hidden><strong>풍경을 불러오지 못했어요.</strong><p id="error-message"></p><button id="reload" class="primary-button">다시 불러오기</button></div>
+  <div id="experience" class="experience" inert aria-hidden="true">
+  <div id="scene" aria-label="드래그해서 회전하고 Ctrl 또는 Command와 휠, 두 손가락으로 확대하는 3D 건물 풍경"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="walking-tools">
+    <div id="movement-pad" class="movement-joystick" role="group" aria-label="실내 이동 조이스틱" tabindex="0" hidden>
+      <span class="joystick-thumb" data-joystick-thumb aria-hidden="true"></span>
+    </div>
+    <div id="room-location" class="location-chip" role="group" aria-label="현재 위치" hidden>
+      <div class="location-building">
+        <span class="location-cell" data-location="2">2층</span>
+        <span class="location-cell" data-location="1" aria-current="location">1층</span>
+      </div>
+      <span class="location-cell location-garden" data-location="outside" role="img" aria-label="외부 정원">
+        <span class="location-tree" aria-hidden="true"></span>
+      </span>
+      <span id="room-name" class="visually-hidden" aria-live="polite">1층 창가</span>
+      <span id="walk-mode" class="visually-hidden">실내 1인칭</span>
+    </div>
+  </div>
+  <div class="time-hud">
+    <div class="time-hud-heading"><label id="time-label" for="time">하루의 순간</label><time id="time-display" datetime="15:00">15:00</time></div>
+    <input id="time" type="range" min="0" max="1439" step="1" value="900" aria-labelledby="time-label" aria-valuetext="15:00">
+  </div>
+  <header class="topbar utility-bar">
+    <div class="top-actions">
+      <button id="music-toggle" class="utility-button music-toggle" type="button" aria-expanded="false" aria-haspopup="dialog" aria-controls="music-dialog">소리</button>
+      <div id="landscape-drawer" class="landscape-drawer" data-open="false">
+        <button id="landscape-toggle" class="utility-button landscape-toggle" type="button" aria-expanded="false" aria-controls="landscape-content">설정</button>
+        <section id="landscape-content" class="landscape-content utility-panel" aria-labelledby="landscape-title" inert aria-hidden="true">
+          <div class="settings-panel-heading">
+            <h2 id="landscape-title">설정</h2>
+            <button id="landscape-close" class="settings-close" type="button" aria-label="설정 닫기">×</button>
+          </div>
+          <section class="control-dock" aria-label="날씨와 시간">
+            <div class="weather-block">
+              <div class="weather-heading">
+                <div class="control-label">오늘의 날씨</div>
+                <button id="weather-auto" class="weather-auto" type="button" aria-pressed="true" aria-label="날씨 자동 전환 끄기" data-target="clear" data-transitioning="false">자동 ON</button>
+              </div>
+              <div class="weather-options">
+                <button data-weather="clear" class="weather-button active" type="button" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg><span>맑음</span></button>
+                <button data-weather="cloudy" class="weather-button" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 1 1 .6-9.96A6 6 0 0 1 19 10a4 4 0 0 1-1 8H7Z"/></svg><span>구름</span></button>
+                <button data-weather="rain" class="weather-button" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14a4 4 0 0 1 .3-8A5 5 0 0 1 16 7a3.5 3.5 0 0 1 2 7M8 17l-1 3m6-3-1 3m6-3-1 3"/></svg><span>비</span></button>
+              </div>
+              <p class="settings-scene-status"><span id="weather-caption">맑은 하늘</span><span class="visually-hidden" id="mood">느긋한 오후</span></p>
+            </div>
+            <div class="time-block">
+              <div class="time-heading">
+                <span class="control-label">하루의 순간</span>
+                <button id="time-play" class="tiny-button" type="button" aria-label="시간 자동 흐름 끄기" aria-pressed="true" title="시간 자동 흐름">Ⅱ</button>
+              </div>
+              <div class="time-marks"><button type="button" data-time="390">아침</button><button type="button" data-time="720">낮</button><button type="button" data-time="1080">노을</button><button type="button" data-time="1320">밤</button></div>
+            </div>
+          </section>
+          <section class="settings-options" aria-label="화면 효과">
+            <label class="rain-quality-control" for="rain-quality"><span>비 품질</span><select id="rain-quality"><option value="auto">자동</option><option value="low">낮음</option><option value="medium">보통</option><option value="high">높음</option></select></label>
+            <output id="rain-quality-status" class="quality-status" for="rain-quality" aria-live="polite">자동</output>
+            <button id="dither-toggle" class="dither-toggle" type="button" aria-label="디더링 끄기" aria-pressed="true">디더링 ON</button>
+          </section>
+          <details class="settings-details">
+            <summary>시점과 조작</summary>
+            <div class="view-tools settings-view-tools" role="group" aria-label="시점 조작">
+              <button data-view="orbit" class="view-button active" type="button" aria-label="기본 시점" aria-pressed="true"><span>기본 시점</span></button>
+              <button data-view="front" class="view-button" type="button" aria-label="정면 시점" aria-pressed="false"><span>정면</span></button>
+              <button data-view="top" class="view-button" type="button" aria-label="위에서 보기" aria-pressed="false"><span>위에서</span></button>
+              <button id="rotate" class="view-button" type="button" aria-label="자동 회전 켜기" aria-pressed="false"><span>자동 회전</span></button>
+            </div>
+            <div class="interaction-hint settings-overview-help"><span class="overview-desktop">드래그로 둘러보기 · Ctrl/⌘ + 휠로 확대</span><span class="overview-touch">드래그로 둘러보기 · 두 손가락으로 확대</span></div>
+            <div class="settings-walk-help"><span class="desktop-help">마우스 드래그로 시선 · WASD / 방향키로 이동 · Esc 전체 보기</span><span class="touch-help">화면을 드래그해 둘러보고, 조이스틱으로 이동하세요</span></div>
+          </details>
+          <div class="settings-secondary-actions">
+            <button id="fullscreen" type="button" aria-pressed="false">전체 화면</button>
+            <button id="reset" class="reset-button" type="button">풍경 초기화</button>
+            <button id="info" type="button" aria-haspopup="dialog" aria-controls="about">작품 정보</button>
+            <button id="intro-return" class="start-return" type="button">시작 화면</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="crosshair" aria-hidden="true" hidden></div>
+    <div id="loading" class="loading" role="status"><div class="loading-house">⌂</div><strong>작은 풍경을 준비하고 있어요</strong><span id="load-progress">건물 불러오는 중</span><div class="load-track"><i id="load-bar"></i></div></div>
+  </main>
+  <footer class="context-dock">
+    <div id="overview-actions" class="overview-actions">
+      <div class="context-row" role="group" aria-label="풍경 둘러보기">
+        <button id="enter-indoor" class="context-button context-primary" type="button" disabled title="건물을 불러온 뒤 실내로 들어갈 수 있어요">카페 들어가기</button>
+        <button id="seat-status-toggle" class="context-button" type="button" aria-expanded="false" aria-controls="seat-status-panel">좌석 현황 <span id="seat-status-count">확인 중</span></button>
+      </div>
+      <section id="seat-status-panel" class="seat-status-panel" aria-label="창가 좌석 현황" hidden>
+        <div class="seat-status-floor"><h2 id="seat-status-floor-1">1층 창가</h2><ul id="seat-status-list-1" aria-labelledby="seat-status-floor-1" role="list"></ul></div>
+        <div class="seat-status-floor"><h2 id="seat-status-floor-2">2층 창가</h2><ul id="seat-status-list-2" aria-labelledby="seat-status-floor-2" role="list"></ul></div>
+      </section>
+    </div>
+    <section id="indoor-ui" aria-label="실내 1인칭 조작" hidden>
+      <div class="context-row context-actions">
+        <section id="door-prompt" class="door-prompt" aria-label="문 출입 안내" hidden><span id="door-caption" class="visually-hidden">입구 · 정원으로 이어지는 문</span><button id="door-action" class="context-button context-primary" type="button" aria-describedby="door-caption">외부로 나가기</button></section>
+        <section id="seat-prompt" class="seat-prompt" aria-label="의자 상호작용" hidden><span id="seat-caption" class="visually-hidden">창가 의자</span><button id="seat-action" class="context-button context-primary" type="button" aria-describedby="seat-caption">앉기</button></section>
+        <button id="rest-toggle" class="context-button rest-toggle" type="button" aria-expanded="false" aria-controls="rest-panel" hidden><span>휴식</span><output id="rest-compact-clock" aria-live="off" aria-label="남은 휴식 시간" hidden></output></button>
+      </div>
+      <div class="context-row indoor-top">
+        <div id="floor-options" class="floor-options" role="group" aria-label="층 선택"><button type="button" data-floor="1" aria-label="1층 카페" aria-pressed="true">1층</button><button type="button" data-floor="2" aria-label="2층 창가" aria-pressed="false">2층</button></div>
+        <button id="exit-indoor" class="context-button exit-indoor" type="button">전체 보기</button>
+      </div>
+    </section>
+  <section id="rest-panel" class="rest-panel rest-drawer" data-open="false" aria-label="창가 휴식" aria-hidden="true" inert hidden>
+    <div class="rest-heading"><span id="rest-seat-name">창가 휴식</span><div class="rest-heading-actions"><button id="rest-settings" type="button" aria-expanded="false" aria-controls="landscape-content">설정</button><button id="rest-close" type="button" aria-label="휴식 창 접기">접기</button></div></div>
+    <div id="rest-setup">
+      <p class="rest-welcome">따뜻한 한 잔과 함께<br>잠깐 쉬어가세요.</p>
+      <label class="rest-field" for="rest-duration">얼마나 머무를까요?<select id="rest-duration"><option value="5">5분</option><option value="10">10분</option><option value="15">15분</option><option value="0">시간 제한 없이</option></select></label>
+      <div class="rest-drink-label">어떤 음료를 드릴까요?</div><div class="rest-drinks" role="group" aria-label="음료 선택"><button type="button" data-drink="coffee" aria-pressed="true">커피</button><button type="button" data-drink="tea" aria-pressed="false">차</button><button type="button" data-drink="cocoa" aria-pressed="false">코코아</button></div>
+      <button id="rest-start" class="rest-primary" type="button">휴식 시작</button>
+    </div>
+    <div id="rest-session-controls" hidden>
+      <span id="rest-clock-caption" class="rest-clock-caption">나를 위한 휴식</span><output id="rest-clock" class="rest-clock" aria-label="휴식 시간">05:00</output>
+      <p id="rest-order-status" class="rest-order-status" role="status"></p>
+      <button id="rest-sip" class="rest-sip" type="button" hidden>한 모금 마시기</button>
+      <div class="rest-actions"><button id="rest-pause" type="button">잠시 멈춤</button><button id="rest-more" type="button" hidden>5분 더 쉬기</button><button id="rest-finish" type="button">휴식 마치기</button></div>
+    </div>
+  </section>
+  <section id="rest-paused" class="rest-paused" aria-label="일시 정지한 휴식" hidden><span>휴식이 잠시 멈췄어요.</span><div><button id="rest-return-seat" type="button">자리로 돌아가기</button><button id="rest-paused-finish" type="button">마치기</button></div></section>
+  <div id="toast" class="toast" role="status"></div>
+  </footer>
+  <section id="rain-view" class="rain-view" aria-label="빗물 감상" hidden>
+    <button id="rain-view-close" type="button">카페로 돌아가기</button>
+  </section>
+  <dialog id="music-dialog" class="music-dialog sound-panel utility-panel" aria-labelledby="music-title">
+    <button id="music-close" class="dialog-close" type="button" aria-label="소리 설정 닫기">×</button>
+    <h2 id="music-title">소리</h2>
+    <div class="natural-sound-row">
+      <button id="sound" class="natural-sound-toggle" type="button" aria-label="자연 소리 끄기" aria-pressed="true" title="자연 소리"><span>자연 소리</span><span id="sound-state" class="natural-sound-state" aria-hidden="true">켜짐</span></button>
+    </div>
+    <h3 class="music-section-heading">카페 음악</h3>
+    <form id="music-form"><label class="music-link-label" for="music-url">유튜브 영상 링크</label><input id="music-url" class="music-url" type="url" inputmode="url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" autocapitalize="off" spellcheck="false" required><button id="music-apply" class="rest-primary" type="submit">선택한 음악 재생</button></form>
+    <p id="music-status" class="music-status" role="status">유튜브 링크를 넣고 음악을 선택해주세요.</p>
+    <a id="music-current" class="music-current" target="_blank" rel="noopener noreferrer" hidden>선택한 YouTube 음악</a>
+    <div class="music-controls"><button id="music-play" type="button" disabled>음악 재생</button><button id="music-pause" type="button" disabled>일시 정지</button></div>
+    <div class="music-volume-heading"><label for="music-volume">음악 음량</label><output id="music-volume-value" for="music-volume">30%</output></div><input id="music-volume" type="range" min="0" max="100" step="1" value="30" aria-label="음악 음량">
+    <p class="music-location">실외·전체 보기에서는 자동으로 멈춰요.<br>직접 멈춘 음악은 다시 켜지지 않아요.</p>
+  </dialog>
+  <div id="music-engine" class="music-engine" aria-hidden="true" inert></div>
+  <dialog id="about" aria-labelledby="about-title"><button id="close-info" class="dialog-close" aria-label="작품 정보 닫기">×</button><span class="eyebrow">ABOUT THIS LITTLE WORLD</span><h2 id="about-title">당신의 모델로 만든<br>작은 풍경.</h2><p>직접 만든 <b>건물2.glb</b>를 중심으로 정원과 나무, 빛과 날씨를 더한 인터랙티브 디오라마입니다.</p><dl><div><dt>모델</dt><dd>사용자 제작 건물</dd></div><div><dt>표현</dt><dd>실시간 3D · 투명 유리</dd></div><div><dt>외부 조작</dt><dd>드래그 · Ctrl/⌘ + 휠 · 두 손가락 확대</dd></div><div><dt>실내 조작</dt><dd>드래그로 시선 · WASD / 화살표 이동</dd></div></dl><p class="about-note">‘카페 들어가기’를 누르면 1층과 2층에서 창문 너머의 풍경을 볼 수 있어요. 1층 문 가까이에서 밖으로 나가 정원을 걷고, 다시 카페로 들어올 수 있어요. 모델의 원래 형태를 살리고 실내 조명을 더했어요. 자연 소리는 브라우저에서 합성됩니다.</p><p class="about-note">창문 빗물: Lucas Bebber / Codrops · Martijn Steinrucken / BigWings. <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank" rel="noopener noreferrer">CC BY-NC-SA 3.0</a> · Over-the-Window 기반.</p><a href="./assets/building2.glb" download="건물2.glb" class="model-download">원본 모델 내려받기</a></dialog>
+  </div>
+</body>
+</html>

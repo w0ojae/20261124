@@ -1,0 +1,3 @@
+# Include the engine when publishing with Jekyll.
+include:
+  - vendor
